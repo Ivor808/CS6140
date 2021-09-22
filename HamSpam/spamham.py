@@ -57,21 +57,36 @@ for file in spamFiles:
 
 h_total = 0
 p_total = 0
-## smoothing - remember to take the log of each
+
+hAdded = 0
+pAdded = 0;
+
 for val in hamWords:
-    hamWords[val] = hamWords[val] + alpha / (hamWordsCount + (alpha * vocab))
-    hamWords[val] = math.log(hamWords[val])
-    h_total += hamWords[val]
-    
+    hamWords[val] += 1
+    hAdded += 1
 
 for val in spamWords:
-    spamWords[val] = spamWords[val] + alpha / (spamWordsCount + (alpha * vocab))
-    spamWords[val] = math.log(spamWords[val])
-    p_total += spamWords[val]
+    spamWords[val] +=1
+    pAdded +=1
 
 spamProb = spamEmailCount / (spamEmailCount + hamEmailCount)
 hamProb = hamEmailCount / (spamEmailCount + hamEmailCount)
 
+## smoothing - remember to take the log of each
+for val in hamWords:
+    hamWords[val] =  (hamWords[val] / (hamWordsCount + hAdded))
+    ##hamWords[val] = math.log(hamWords[val])
+    h_total += hamWords[val]
+    
+
+for val in spamWords:
+    spamWords[val] = spamWords[val] / (spamWordsCount + pAdded)
+    ##spamWords[val] = math.log(spamWords[val])
+    p_total += spamWords[val]
+
+## P(H) * P(f1) * (Pf2)
+
+## lets calculate scores to get an idea of how the model is doing
 
 ## test model?
 ## issues with normalization/
@@ -80,14 +95,21 @@ count = 1
 for file in testFiles:
     f = open(file, 'r')
     read = f.readlines()
-    pspam  = spamProb
-    pham = hamProb
+    pspam  = 1
+    pham = 1
     for word in read:
         word = word.strip()
         if word in hamWords:
-            pham *= hamWords[word]
+            pham = hamWords[word] * pham
+        else:
+            pham *= (1/hamWordsCount + hAdded)
         if word in spamWords:
-            pspam *= spamWords[word]
+            pspam = spamWords[word] * pspam
+        else:
+            pspam *= (1/spamWordsCount + pAdded)
+    pspam = pspam * spamProb
+    pham = pham * hamProb
+
     if pspam > pham:
         print(str(count) + ":spam")
     else:
