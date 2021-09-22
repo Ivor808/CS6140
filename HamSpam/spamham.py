@@ -1,5 +1,4 @@
 from glob import glob
-import matplotlib.pylab as plt
 import os
 import math
 import decimal
@@ -15,10 +14,10 @@ testFiles = glob(testPath + '*.words')
 
 ## Hyperparamaters
 
-alpha = 0.001
+alpha = 0.1
 
 ## Vocab total
-vocab = 8000
+vocab = 80000
 
 ## spam and ham counts
 hamWords = dict()
@@ -35,12 +34,11 @@ for file in hamFiles:
     hamEmailCount += 1
     for word in read:
         word = word.strip()
-
+        hamWordsCount +=1
         if word in hamWords:
             hamWords[word] += 1
         else:
             hamWords[word] = 1
-            hamWordsCount +=1
 
 for file in spamFiles:
     f = open(file, "r")
@@ -48,43 +46,31 @@ for file in spamFiles:
     spamEmailCount += 1
     for word in read:
         word = word.strip()
-
+        spamWordsCount +=1
         if word in spamWords:
             spamWords[word] += 1
         else:
             spamWords[word] = 1
-            spamWordsCount +=1
 
-h_total = 0
-p_total = 0
 
-hAdded = 0
-pAdded = 0;
+## Probability
 
-for val in hamWords:
-    hamWords[val] += 1
-    hAdded += 1
+totalEmails = (hamEmailCount + spamEmailCount)
+hamProb = hamEmailCount / totalEmails
+spamProb = spamEmailCount / totalEmails
 
-for val in spamWords:
-    spamWords[val] +=1
-    pAdded +=1
+## Data now has counts of each word, lets loop through and make them a probability
 
-spamProb = spamEmailCount / (spamEmailCount + hamEmailCount)
-hamProb = hamEmailCount / (spamEmailCount + hamEmailCount)
+for word in hamWords:
+    hamWords[word] = (hamWords[word] + alpha) / (hamWordsCount + (alpha * vocab))
+    ##hamWords[word] = math.log(hamWords[word])
 
-## smoothing - remember to take the log of each
-for val in hamWords:
-    hamWords[val] =  (hamWords[val] / (hamWordsCount + hAdded))
-    ##hamWords[val] = math.log(hamWords[val])
-    h_total += hamWords[val]
-    
+for word in spamWords:
+    spamWords[word] = (spamWords[word] + alpha) / (spamWordsCount + (alpha * vocab))
+    ##spamWords[word] = math.log(spamWords[word])
 
-for val in spamWords:
-    spamWords[val] = spamWords[val] / (spamWordsCount + pAdded)
-    ##spamWords[val] = math.log(spamWords[val])
-    p_total += spamWords[val]
 
-## P(H) * P(f1) * (Pf2)
+
 
 ## lets calculate scores to get an idea of how the model is doing
 
@@ -92,6 +78,8 @@ for val in spamWords:
 ## issues with normalization/
 ## id on test file doesnt work
 count = 1
+truth_Table = (1,5,10,13,14,15,17,18,19,20,21,23,24,25,28,31,32,35,36,37,38,40,42,43,44,45,46,50,51,55,58,63,65,66,68,73,88)
+confusion_matrix = {'TP': 0, 'FP': 0, 'FN': 0, 'TN':0}
 for file in testFiles:
     f = open(file, 'r')
     read = f.readlines()
@@ -102,19 +90,38 @@ for file in testFiles:
         if word in hamWords:
             pham = hamWords[word] * pham
         else:
-            pham *= (1/hamWordsCount + hAdded)
+            pham *= (1 + alpha/(hamWordsCount + (alpha * vocab)))
         if word in spamWords:
             pspam = spamWords[word] * pspam
         else:
-            pspam *= (1/spamWordsCount + pAdded)
+            pspam *= (1 + alpha/ (spamWordsCount + (alpha * vocab)))
+    
     pspam = pspam * spamProb
     pham = pham * hamProb
 
     if pspam > pham:
         print(str(count) + ":spam")
+
+        if count in truth_Table:
+            confusion_matrix['TP'] += 1
+        else:
+            confusion_matrix['FP'] += 1
     else:
         print(str(count) + ":ham")
+        if count in truth_Table:
+            confusion_matrix['FN'] += 1
+        else:
+            confusion_matrix['TN'] += 1
     count += 1
+
+print(confusion_matrix)
+
+precision = confusion_matrix['TP'] / (confusion_matrix['TP'] + confusion_matrix['FP'])
+recall = confusion_matrix['TP'] / (confusion_matrix['TP'] + confusion_matrix['FN'])
+f1 = (2 * precision *recall) / (precision + recall)
+print("Precision: " + str(precision))
+print("Recall: " + str(recall))
+print("f1: " + str(f1))
 
 
         
