@@ -14,10 +14,10 @@ testFiles = glob(testPath + '*.words')
 
 ## Hyperparamaters
 
-alpha = 0.1
+alpha = 1
 
 ## Vocab total
-vocab = 80000
+vocab = 1500
 
 ## spam and ham counts
 hamWords = dict()
@@ -33,7 +33,7 @@ for file in hamFiles:
     read = f.readlines()
     hamEmailCount += 1
     for word in read:
-        word = word.strip()
+        word = word.strip('\n').lower()
         hamWordsCount +=1
         if word in hamWords:
             hamWords[word] += 1
@@ -45,7 +45,7 @@ for file in spamFiles:
     read = f.readlines()
     spamEmailCount += 1
     for word in read:
-        word = word.strip()
+        word = word.strip('\n').lower()
         spamWordsCount +=1
         if word in spamWords:
             spamWords[word] += 1
@@ -59,45 +59,45 @@ totalEmails = (hamEmailCount + spamEmailCount)
 hamProb = hamEmailCount / totalEmails
 spamProb = spamEmailCount / totalEmails
 
-## Data now has counts of each word, lets loop through and make them a probability
+hamProb = math.log(hamProb)
+spamProb = math.log(spamProb)
+
+## Data now has counts of each word, lets loop through and make them a probability/smooth them
 
 for word in hamWords:
     hamWords[word] = (hamWords[word] + alpha) / (hamWordsCount + (alpha * vocab))
-    ##hamWords[word] = math.log(hamWords[word])
+    hamWords[word] = math.log(hamWords[word])
 
 for word in spamWords:
     spamWords[word] = (spamWords[word] + alpha) / (spamWordsCount + (alpha * vocab))
-    ##spamWords[word] = math.log(spamWords[word])
+    spamWords[word] = math.log(spamWords[word])
 
 
 
 
 ## lets calculate scores to get an idea of how the model is doing
 
-## test model?
-## issues with normalization/
-## id on test file doesnt work
+
 count = 1
 truth_Table = (1,5,10,13,14,15,17,18,19,20,21,23,24,25,28,31,32,35,36,37,38,40,42,43,44,45,46,50,51,55,58,63,65,66,68,73,88)
 confusion_matrix = {'TP': 0, 'FP': 0, 'FN': 0, 'TN':0}
 for file in testFiles:
     f = open(file, 'r')
     read = f.readlines()
-    pspam  = 1
-    pham = 1
+    pspam  = spamProb
+    pham = hamProb
     for word in read:
-        word = word.strip()
+        word = word.strip('\n').lower()
         if word in hamWords:
-            pham = hamWords[word] * pham
+            pham += hamWords[word]
         else:
-            pham *= (1 + alpha/(hamWordsCount + (alpha * vocab)))
+            pham += math.log((alpha/(hamWordsCount + (alpha * vocab))))
         if word in spamWords:
-            pspam = spamWords[word] * pspam
+            pspam += spamWords[word]
         else:
-            pspam *= (1 + alpha/ (spamWordsCount + (alpha * vocab)))
+            pspam += math.log((alpha/ (spamWordsCount + (alpha * vocab))))
     
-    pspam = pspam * spamProb
-    pham = pham * hamProb
+    
 
     if pspam > pham:
         print(str(count) + ":spam")
