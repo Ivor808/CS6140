@@ -29,7 +29,7 @@ spamWords = dict()
 spamWordsCount = 0
 spamEmailCount = 0
 
-## Calculate ham words total and counts of each
+## Calculate ham/spam words total and counts of each word
 for file in hamFiles:
     with open(file, "r") as f:
         read = f.readlines()
@@ -63,7 +63,6 @@ hamProb = math.log2(hamProb)
 spamProb = math.log2(spamProb)
 
 ## Convert each count to a probability, then smooth it and put in log space
-
 for word in hamWords:
     hamWords[word] = (hamWords[word] + alpha) / (hamWordsCount + alpha * vocab)
     hamWords[word] = math.log2(hamWords[word])
