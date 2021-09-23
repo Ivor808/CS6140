@@ -18,7 +18,7 @@ truthFile = truthPath + truthName
 
 ## Hyperparamaters
 alpha = 0.01
-vocab = 1000000
+vocab = 170000
 
 ## spam and ham counts
 hamWords = dict()
